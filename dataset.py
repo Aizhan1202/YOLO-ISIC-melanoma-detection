@@ -1,10 +1,11 @@
-import os
 import numpy as np
-import cv2
+import cv2 as cv
 import pandas as pd
 from glob import glob
 from tqdm import tqdm
 from skimage.measure import label, regionprops, find_contours
+import os
+import re
 
 """ Creating a directory """
 def create_dir(path):
@@ -58,8 +59,8 @@ def bbox_to_list(im_path, mask_path, cls_path):
     name = x.split("/")[-1].split(".")[0]
 
     """ Read image and mask """
-    x = cv2.imread(x, cv2.IMREAD_COLOR)
-    y = cv2.imread(y, cv2.IMREAD_GRAYSCALE)
+    x = cv.imread(x, cv.IMREAD_COLOR)
+    y = cv.imread(y, cv.IMREAD_GRAYSCALE)
 
     """ Detecting bounding boxes """
     bboxes = mask_to_bbox(y)
@@ -98,3 +99,108 @@ def savetxt_compact(fname, x, fmt="%.0g", delimiter=','):
             fh.write(line + '\n')
 
 savetxt_compact('target.txt', bboxes_list, fmt='%.0f')
+
+
+def img_path_list (img_path):
+  path_list = []
+  for root, dirs, files in os.walk(os.path.abspath(img_path+"/")):
+      for file in files:
+          path_list.append(os.path.join(root, file))
+  def atoi(text):
+    return int(text) if text.isdigit() else text
+  def natural_keys(text):
+      return [ atoi(c) for c in re.split('(\d+)',text) ]
+  path_list.sort(key=natural_keys)
+
+  return path_list
+
+
+im_path = "ISIC_tr"
+
+
+def read(image_path, label):
+    image = cv.imread(image_path)
+    image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+    image_h, image_w = image.shape[0:2]
+    image = cv.resize(image, (448, 448))
+    image = image / 255.
+
+    label_matrix = np.zeros([7, 7, 12])
+    for l in label:
+        l = l.split(',')
+        l = np.array(l, dtype=np.int) #converts string to int array [x1,y1,x2,y2]
+        xmin = l[0]
+        ymin = l[1]
+        xmax = l[2]
+        ymax = l[3]
+        cls = l[4]
+        x = ((xmin + xmax) / 2 / image_w)/448
+        y = ((ymin + ymax) / 2 / image_h)/448
+        w = ((xmax - xmin) / image_w)/448
+        h = ((ymax - ymin) / image_h)/448
+        loc = [7 * x, 7 * y]
+        loc_i = int(loc[1])
+        loc_j = int(loc[0])
+        y = loc[1] - loc_i
+        x = loc[0] - loc_j
+
+        if label_matrix[loc_i, loc_j, 6] == 0:
+            label_matrix[loc_i, loc_j, cls] = 1
+            label_matrix[loc_i, loc_j, 2:6] = [x, y, w, h]
+            label_matrix[loc_i, loc_j, 6] = 1  # response
+
+    return image, label_matrix
+
+
+train_datasets = []
+
+with open(os.path.join("Data", 'target.txt'), 'r') as f:
+    train_datasets = train_datasets + f.readlines()
+
+Y = []
+
+for item in train_datasets:
+  item = item.replace("\n", "").split(" ")
+  arr = []
+  for i in range(0, len(item)):
+    arr.append(item[i])
+  Y.append(arr)
+
+
+
+train_image = []
+train_label = []
+
+def load_data (X, Y):
+    for i in range(0, len(X)):
+      img_path = X[i]
+      label = Y[i]
+      image, label_matrix = read(img_path, label)
+      train_image.append(image)
+      train_label.append(label_matrix)
+      x = np.array(train_image)
+      y = np.array(train_label)
+    return x, y
+
+"""Split the data into train, validation and test sets"""
+
+def tr_val_ts_split (x, y):
+    train_threshold = int(x.shape[0]/100*90)
+    test_threshold = int(x.shape[0]/100*95)
+
+    train_ind = []
+    for i in range(train_threshold):
+      train_ind.append(i)
+
+    test_ind = []
+    for i in range(train_threshold, test_threshold):
+      test_ind.append(i)
+
+    val_ind = []
+    for i in range(test_threshold, x.shape[0]):
+      val_ind.append(i)
+
+    x_train, x_test, x_val = x[train_ind], x[test_ind], x[val_ind]
+    y_train, y_test, y_val = y[train_ind], y[test_ind], y[val_ind]
+
+    return x_train, x_test, x_val, y_train, y_test, y_val
