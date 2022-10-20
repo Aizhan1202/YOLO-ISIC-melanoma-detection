@@ -3,6 +3,8 @@ from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense, Dropout, L
 from keras.models import Model
 import keras.backend as K
 from tensorflow import keras
+from keras.callbacks import ModelCheckpoint
+
 
 
 class Yolo_Reshape(tf.keras.layers.Layer):
@@ -104,18 +106,8 @@ def block_7(conv):
   print(output.shape)
   return output
 
-inputs = Input(shape=(448,448,3))
-conv = block_1(inputs)
-conv = block_2(conv)
-conv = block_3(conv)
-conv = block_4(conv)
-conv = block_5(conv)
-conv = block_6(conv)
-output = block_7(conv)
 
-
-model = Model(inputs, output)
-
+mcp_save = ModelCheckpoint('weight.hdf5', save_best_only=True, monitor='val_loss', mode='min')
 
 
 class CustomLearningRateScheduler(keras.callbacks.Callback):
@@ -256,3 +248,4 @@ def yolo_loss(y_true, y_pred):
     loss = confidence_loss + class_loss + box_loss
 
     return loss
+

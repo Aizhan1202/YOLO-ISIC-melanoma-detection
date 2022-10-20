@@ -86,11 +86,6 @@ def bbox_to_list(im_path, mask_path, cls_path):
   return bboxes_list
 
 
-im_path = "ISIC_tr"
-mask_path = "ISIC_tr_seg"
-cls_path = "/content/drive/MyDrive/Pattern_analysis/OpenSource_project/Data/ISIC-2017_Training_Part3_GroundTruth.csv"
-bboxes_list = bbox_to_list(im_path, mask_path, cls_path)
-
 
 def savetxt_compact(fname, x, fmt="%.0g", delimiter=','):
     with open(fname, 'w') as fh:
@@ -98,7 +93,7 @@ def savetxt_compact(fname, x, fmt="%.0g", delimiter=','):
             line = delimiter.join("0" if value == 0 else fmt % value for value in row)
             fh.write(line + '\n')
 
-savetxt_compact('target.txt', bboxes_list, fmt='%.0f')
+
 
 
 def img_path_list (img_path):
@@ -114,8 +109,6 @@ def img_path_list (img_path):
 
   return path_list
 
-
-im_path = "ISIC_tr"
 
 
 def read(image_path, label):
@@ -152,25 +145,8 @@ def read(image_path, label):
     return image, label_matrix
 
 
-train_datasets = []
-
-with open(os.path.join("Data", 'target.txt'), 'r') as f:
-    train_datasets = train_datasets + f.readlines()
-
-Y = []
-
-for item in train_datasets:
-  item = item.replace("\n", "").split(" ")
-  arr = []
-  for i in range(0, len(item)):
-    arr.append(item[i])
-  Y.append(arr)
-
-
-
 train_image = []
 train_label = []
-
 def load_data (X, Y):
     for i in range(0, len(X)):
       img_path = X[i]
