@@ -35,7 +35,8 @@ YOLO has a complex loss function, which consists of three parts: bounding box co
 To prevent the model from converging in bad local minima, I wrote learning rate scheduler function, which reduces the learning rate after some number of epochs. I was able to train only 30 epochs due to Google Colab limitations, and the learning rate is first 0.1, from epoch#10 it’s 0.01, and from epoch#20 it’s 0.001. 
 You can find all the model components, loss function, and learning rate scheduler in modules.py file
 #### Running prediction with saved model
-After training I saved the whole model into saved_model directory to be able to perform object detection without training the model again. The code for initializing saved model and predicting examples is located in predict.py file. You can run it to see how what results the model gives
+After training I saved the whole model into saved_model directory to be able to perform object detection without training the model again. The code for initializing saved model and predicting examples is located in predict.py file. You can run it to see how what results the model gives.
+Saved model directory was too big to load into github, so I uploaded the test file with the link to download the saved model
 ### Results
 Unfortunately, I didn’t get satisfying results by this time. The first problem is that training loss fluctuated, and the validation loss did not change during training, and consequently, I got bad prediction results. After analyzing my code, I came to a decision, that these mistakes are due to bad loss function. Hopefully, I will be able to deal with these mistakes in my further work.
 
