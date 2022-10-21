@@ -66,24 +66,24 @@ def bbox_to_list(im_path, mask_path, cls_path):
     bboxes = mask_to_bbox(y)
     bboxes_list.append(bboxes)
 
-  """ Taking only one biggest bounding box """
-  for i in range(len(bboxes_list)):
-    index = 0
-    max_el = 0
-    for j in range(len(bboxes_list[i])):
-      diff = (bboxes_list[i][j][2] - bboxes_list[i][j][0])+(bboxes_list[i][j][3] - bboxes_list[i][j][1])
-      if(diff > max_el):
-        max_el = diff
-        index = j
-    bboxes_list[i] = bboxes_list[i][index]
-
-  """ Adding class label to bbox list"""
-  classes = pd.read_csv(cls_path)
-  classes = np.asarray(classes['melanoma'])
-  for i in range(2000):
-    bboxes_list[i].append(int(classes[i]))
-
-  return bboxes_list
+  # """ Taking only one biggest bounding box """
+  # for i in range(len(bboxes_list)):
+  #   index = 0
+  #   max_el = 0
+  #   for j in range(len(bboxes_list[i])):
+  #     diff = (bboxes_list[i][j][2] - bboxes_list[i][j][0])+(bboxes_list[i][j][3] - bboxes_list[i][j][1])
+  #     if(diff > max_el):
+  #       max_el = diff
+  #       index = j
+  #   bboxes_list[i] = bboxes_list[i][index]
+  #
+  # """ Adding class label to bbox list"""
+  # classes = pd.read_csv(cls_path)
+  # classes = np.asarray(classes['melanoma'])
+  # for i in range(2000):
+  #   bboxes_list[i].append(int(classes[i]))
+  #
+  # return bboxes_list
 
 
 
@@ -114,7 +114,6 @@ def img_path_list (img_path):
 def read(image_path, label):
     image = cv.imread(image_path)
     image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-    image_h, image_w = image.shape[0:2]
     image = cv.resize(image, (448, 448))
     image = image / 255.
 
@@ -127,20 +126,20 @@ def read(image_path, label):
         xmax = l[2]
         ymax = l[3]
         cls = l[4]
-        x = ((xmin + xmax) / 2 / image_w)/448
-        y = ((ymin + ymax) / 2 / image_h)/448
-        w = ((xmax - xmin) / image_w)/448
-        h = ((ymax - ymin) / image_h)/448
-        loc = [7 * x, 7 * y]
-        loc_i = int(loc[1])
-        loc_j = int(loc[0])
-        y = loc[1] - loc_i
-        x = loc[0] - loc_j
+        x = ((xmin + xmax) / 2 / 448)
+        y = ((ymin + ymax) / 2 / 448)
+        w = ((xmax - xmin) / 448)
+        h = ((ymax - ymin) / 448)
+        # loc = [7 * x, 7 * y]
+        # loc_i = int(loc[1])
+        # loc_j = int(loc[0])
+        # y = loc[1] - loc_i
+        # x = loc[0] - loc_j
 
-        if label_matrix[loc_i, loc_j, 6] == 0:
-            label_matrix[loc_i, loc_j, cls] = 1
-            label_matrix[loc_i, loc_j, 2:6] = [x, y, w, h]
-            label_matrix[loc_i, loc_j, 6] = 1  # response
+        if label_matrix[0, 0, 6] == 0:
+            label_matrix[0, 0, cls] = 1
+            label_matrix[0, 0, 2:6] = [x, y, w, h]
+            label_matrix[0, 0, 6] = 1  # response
 
     return image, label_matrix
 

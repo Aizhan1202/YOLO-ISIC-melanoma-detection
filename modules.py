@@ -4,7 +4,7 @@ from keras.models import Model
 import keras.backend as K
 from tensorflow import keras
 from keras.callbacks import ModelCheckpoint
-
+import os
 
 
 class Yolo_Reshape(tf.keras.layers.Layer):
@@ -25,7 +25,7 @@ class Yolo_Reshape(tf.keras.layers.Layer):
         # classes
         C = 2
         # no of bounding boxes per grid
-        B = 1
+        B = 2
 
         idx1 = S[0] * S[1] * C
         idx2 = idx1 + S[0] * S[1] * B
@@ -100,14 +100,19 @@ def block_7(conv):
   conv = Dense(512)(conv)
   conv = Dense(1024)(conv)
   conv = Dropout(0.5)(conv)
-  conv = Dense(1470, activation='sigmoid')(conv)
+  conv = Dense(588, activation='sigmoid')(conv)
   print(conv.shape)
-  output = Yolo_Reshape(target_shape=(7,7,30))(conv)
+  output = Yolo_Reshape(target_shape=(7,7,12))(conv)
   print(output.shape)
   return output
 
 
-mcp_save = ModelCheckpoint('weight.hdf5', save_best_only=True, monitor='val_loss', mode='min')
+# mcp_save = ModelCheckpoint('weight.hdf5', save_best_only=True, monitor='val_loss', mode='min')
+checkpoit_path = ("SavedModel")
+checkpoint_dir = os.path.dirname(checkpoit_path)
+
+cp_callback = ModelCheckpoint(checkpoit_path, save_weights_only=True, verbose=1)
+
 
 
 class CustomLearningRateScheduler(keras.callbacks.Callback):
@@ -178,7 +183,6 @@ def yolo_head(feats):
     conv_width_index = K.arange(0, stop=conv_dims[1])
     conv_height_index = K.tile(conv_height_index, [conv_dims[1]])
 
-    # TODO: Repeat_elements and tf.split doesn't support dynamic splits.
     # conv_width_index = K.repeat_elements(conv_width_index, conv_dims[1], axis=0)
     conv_width_index = K.tile(
         K.expand_dims(conv_width_index, 0), [conv_dims[0], 1])
@@ -194,6 +198,31 @@ def yolo_head(feats):
 
     return box_xy, box_wh
 
+
+
+def yolo_head(feats):
+    # Dynamic implementation of conv dims for fully convolutional model.
+    conv_dims = K.shape(feats)[1:3]  # assuming channels last
+    # In YOLO the height index is the inner most iteration.
+    conv_height_index = K.arange(0, stop=conv_dims[0])
+    conv_width_index = K.arange(0, stop=conv_dims[1])
+    conv_height_index = K.tile(conv_height_index, [conv_dims[1]])
+
+    # TODO: Repeat_elements and tf.split doesn't support dynamic splits.
+    # conv_width_index = K.repeat_elements(conv_width_index, conv_dims[1], axis=0)
+    conv_width_index = K.tile(
+        K.expand_dims(conv_width_index, 0), [conv_dims[0], 1])
+    conv_width_index = K.flatten(K.transpose(conv_width_index))
+    conv_index = K.transpose(K.stack([conv_height_index, conv_width_index]))
+    conv_index = K.reshape(conv_index, [1, conv_dims[0], conv_dims[1], 1, 2])
+    conv_index = K.cast(conv_index, K.dtype(feats))
+
+    conv_dims = K.cast(K.reshape(conv_dims, [1, 1, 1, 1, 2]), K.dtype(feats))
+
+    box_xy = (feats[..., :2] + conv_index) / conv_dims * 448
+    box_wh = feats[..., 2:4] * 448
+
+    return box_xy, box_wh
 
 def yolo_loss(y_true, y_pred):
     label_class = y_true[..., :2]  # ? * 7 * 7 * 2 (c1,c2)
@@ -248,4 +277,3 @@ def yolo_loss(y_true, y_pred):
     loss = confidence_loss + class_loss + box_loss
 
     return loss
-

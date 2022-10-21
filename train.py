@@ -1,6 +1,6 @@
 from modules import yolo_loss
 from modules import block_1, block_2, block_3, block_4, block_5, block_6, block_7
-from modules import CustomLearningRateScheduler, lr_schedule, mcp_save
+from modules import CustomLearningRateScheduler, lr_schedule, cp_callback
 from dataset import bbox_to_list, savetxt_compact, load_data, img_path_list, tr_val_ts_split
 from keras.layers import Input, Conv2D, Conv1D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 from keras.models import Model
@@ -13,17 +13,20 @@ from tensorflow import keras
 
 
 im_path = "ISIC_tr"
-mask_path = "ISIC_tr_seg"
-cls_path = "/content/drive/MyDrive/Pattern_analysis/OpenSource_project/Data/ISIC-2017_Training_Part3_GroundTruth.csv"
-bboxes_list = bbox_to_list(im_path, mask_path, cls_path)
-
-savetxt_compact('target.txt', bboxes_list, fmt='%.0f')
+# im_path_files = "ISIC_tr/"
+# mask_path = "ISIC_tr_seg"
+# cls_path = 'C:\Users\HP\Downloads\ISIC-2017_Training_Part3_GroundTruth.csv'
+# bboxes_list = bbox_to_list(im_path, mask_path, cls_path)
+#
+# savetxt_compact('target.txt', bboxes_list, fmt='%.0f')
 
 X = img_path_list(im_path)
 
+print(X[0])
+
 train_datasets = []
 
-with open(os.path.join("Data", 'target.txt'), 'r') as f:
+with open('target.txt', 'r') as f:
     train_datasets = train_datasets + f.readlines()
 
 Y = []
@@ -35,6 +38,7 @@ for item in train_datasets:
     arr.append(item[i])
   Y.append(arr)
 
+print(Y[0])
 
 x, y = load_data(X, Y)
 
@@ -52,6 +56,8 @@ output = block_7(conv)
 
 model = Model(inputs, output)
 
-model.compile(loss=yolo_loss ,optimizer='adam')
+model.compile(loss=yolo_loss, optimizer='adam')
 
-model.fit(x_train, y_train, batch_size=16, epochs=30, validation_data=(x_val, y_val), callbacks=[CustomLearningRateScheduler(lr_schedule), mcp_save ])
+model.fit(x_train, y_train, batch_size=16, epochs=30, validation_data=(x_val, y_val), callbacks=[CustomLearningRateScheduler(lr_schedule), cp_callback ])
+
+model.save('saved_model/')
